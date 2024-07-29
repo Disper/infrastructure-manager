@@ -2,6 +2,8 @@ package fsm
 
 import (
 	"context"
+	gardener_api "github.com/gardener/gardener/pkg/apis/core/v1beta1"
+	"k8s.io/apimachinery/pkg/types"
 
 	imv1 "github.com/kyma-project/infrastructure-manager/api/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -42,6 +44,7 @@ func sFnDeleteShoot(ctx context.Context, m *fsm, s *systemState) (stateFn, *ctrl
 	err := m.ShootClient.Delete(ctx, s.shoot)
 	if err != nil {
 		m.log.Error(err, "Failed to delete gardener Shoot")
+		attemptForceDeletion(m, ctx, s)
 
 		s.instance.UpdateStateDeletion(
 			imv1.ConditionTypeRuntimeProvisioned,
@@ -54,6 +57,46 @@ func sFnDeleteShoot(ctx context.Context, m *fsm, s *systemState) (stateFn, *ctrl
 
 	return updateStatusAndRequeueAfter(gardenerRequeueDuration)
 }
+
+func attemptForceDeletion(m *fsm, ctx context.Context, s *systemState) {
+	shoot := &gardener_api.Shoot{}
+	shootKey := types.NamespacedName{
+		Name:      s.shoot.Name,
+		Namespace: s.shoot.Namespace,
+	}
+	err := m.Client.Get(ctx, shootKey, shoot)
+
+	supportedErrorCodes := []gardener_api.ErrorCode{
+		gardener_api.ErrorCleanupClusterResources,
+		gardener_api.ErrorConfigurationProblem,
+		gardener_api.ErrorInfraDependencies,
+		gardener_api.ErrorInfraUnauthenticated,
+		gardener_api.ErrorInfraUnauthorized,
+	}
+
+	for _, condition := range shoot.Status.Conditions {
+		for _, conditionErrorCode := range condition.Codes {
+			for _, supportedErrorCode := range supportedErrorCodes {
+				if conditionErrorCode == supportedErrorCode {
+					m.log.Info("Force deletion enabled for shoot", "shoot", shoot.Name, "supportedErrorCode", supportedErrorCode)
+
+					// TODO: add annotation for force deletion
+					//s.shoot.Annotations = addGardenerCloudDelConfirmation(s.shoot.Annotations)
+					err := m.ShootClient.Patch(ctx, s.shoot, client.Apply, &client.PatchOptions{
+						FieldManager: "kim",
+						Force:        ptrTo(true),
+					})
+					if err != nil {
+						m.log.Error(err, "unable to patch shoot:", s.shoot.Name)
+					}
+					return
+				}
+			}
+		}
+	}
+}
+
+func conditionShouldEnableForceDelation()
 
 func isGardenerCloudDelConfirmationSet(a map[string]string) bool {
 	if len(a) == 0 {
