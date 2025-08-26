@@ -1,52 +1,101 @@
-[![REUSE status](https://api.reuse.software/badge/github.com/kyma-project/cluster-inventory)](https://api.reuse.software/info/github.com/kyma-project/cluster-inventory)
+[![REUSE status](https://api.reuse.software/badge/github.com/kyma-project/infrastructure-manager)](https://api.reuse.software/info/github.com/kyma-project/infrastructure-manager)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kyma-project/infrastructure-manager)](https://goreportcard.com/report/github.com/kyma-project/infrastructure-manager)
+[![unit tests](https://badgen.net/github/checks/kyma-project/kyma-infrastructure-manager/main/unit-tests)](https://github.com/kyma-project/kyma-infrastructure-manager/actions/workflows/run-tests.yaml)
+[![Coverage Status](https://coveralls.io/repos/github/kyma-project/kyma-infrastructure-manager/badge.svg?branch=main)](https://coveralls.io/github/kyma-project/kyma-infrastructure-manager?branch=main)
+[![golangci lint](https://badgen.net/github/checks/kyma-project/kyma-infrastructure-manager/main/golangci-lint)](https://github.com/kyma-project/kyma-infrastructure-manager/actions/workflows/golangci-lint.yaml)
+[![latest release](https://badgen.net/github/release/kyma-project/kyma-infrastructure-manager)](https://github.com/kyma-project/kyma-infrastructure-manager/releases/latest)
 
-> **NOTE:** This is a general template that can be used for a project README.md, example README.md, or any other README.md type in all Kyma repositories in the Kyma organization. Except for the mandatory sections, use only those sections that suit your use case but keep the proposed section order.
->
-> Mandatory sections: 
-> - `Overview`
-> - `Prerequisites`, if there are any requirements regarding hard- or software
-> - `Contributing` - do not change this!
-> - `Code of Conduct` - do not change this!
-> - `Licensing` - do not change this!
-
-# {Project Title}
-<!--- mandatory --->
-> Modify the title and insert the name of your project. Use Heading 1 (H1).
+# Kyma Infrastructure Manager
 
 ## Overview
-<!--- mandatory section --->
 
-> Provide a description of the project's functionality.
->
-> If it is an example README.md, describe what the example illustrates.
+Kyma Infrastructure Manager (KIM) manages the [Kyma](https://kyma-project.io/#/) cluster infrastructure. It's built using the [kubebuilder](https://github.com/kubernetes-sigs/kubebuilder) framework.
+
+It's responsible for generating and rotating Secrets containing dynamic kubeconfigs.
 
 ## Prerequisites
 
-> List the requirements to run the project or example.
+- Access to a Kubernetes cluster. You can use [k3d](https://k3d.io) to get a local cluster for testing or run against a remote cluster.
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
 
 ## Installation
 
-> Explain the steps to install your project. Create an ordered list for each installation task.
->
-> If it is an example README.md, describe how to build, run locally, and deploy the example. Format the example as code blocks and specify the language, highlighting where possible. Explain how you can validate that the example ran successfully. For example, define the expected output or commands to run which check a successful deployment.
->
-> Add subsections (H3) for better readability.
+1. Clone the project.
+
+    ```bash
+    git clone https://github.com/kyma-project/infrastructure-manager.git && cd infrastructure-manager/
+    ```
+
+2. Set the `infrastructure-manager` image name.
+
+    ```bash
+    export IMG=custom-infrastructure-manager:0.0.1
+    export K3D_CLUSTER_NAME=infrastructure-manager-demo
+    ```
+
+3. Build the project.
+
+    ```bash
+    make build
+    ```
+
+4. Build the image.
+
+    ```bash
+    make docker-build
+    ```
+
+5. Push the image to the registry.
+
+    <div tabs name="Push image" group="infrastructure-manager-installation">
+      <details>
+      <summary label="k3d">
+      k3d
+      </summary>
+
+
+      ```bash
+      k3d cluster create $K3D_CLUSTER_NAME
+      k3d image import $IMG -c $K3D_CLUSTER_NAME
+      ```
+
+      </details>
+      <details>
+      <summary label="Docker registry">
+      Globally available Docker registry
+      </summary>
+
+      ```bash
+      make docker-push
+      ```
+
+      </details>
+    </div>
+
+6. Deploy.
+
+    ```bash
+    make deploy
+    ```
+
+7. Create a Secret with the Gardener credentials.
+
+    ```bash
+    export GARDENER_KUBECONFIG_PATH=<kubeconfig file for Gardener project> 
+    make gardener-secret-deploy
+    ```
 
 ## Usage
 
-> Explain how to use the project. You can create multiple subsections (H3). Include the instructions or provide links to the related documentation.
+KIM is responsible for creating and rotating Secrets of clusters defined in the `GardenerCluster` custom resources (CRs). The sample CR is available in this [YAML file](config/samples/infrastructuremanager_v1_gardenercluster.yaml).
 
-## Development
+### Time-Based Rotation
 
-> Add instructions on how to develop the project or example. It must be clear what to do and, for example, how to trigger the tests so that other contributors know how to make their pull requests acceptable. Include the instructions or provide links to related documentation.
+Secrets are rotated based on `kubeconfig-expiration-time`. For more information, see [Configuration](docs/README.md#configuration).
 
-## Troubleshooting
+### Force Rotation
 
-> List potential issues and provide tips on how to avoid or solve them. To structure the content, use the following sections:
->
-> - **Symptom**
-> - **Cause**
-> - **Remedy**
+It's possible to force the Secret rotation before the time-based rotation kicks in. To do that, add the `operator.kyma-project.io/force-kubeconfig-rotation: "true"` annotation to the `GardenCluster` CR.
 
 ## Contributing
 <!--- mandatory section - do not change this! --->
@@ -61,4 +110,4 @@ See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
 ## Licensing
 <!--- mandatory section - do not change this! --->
 
-See the [LICENSE file](./LICENSE)
+See the [LICENSE file](./LICENSES/Apache-2.0.txt)

@@ -1,12 +1,12 @@
 # Adds namespace to all resources.
-namespace: cluster-inventory-system
+namespace: kcp-system
 
 # Value of this field is prepended to the
 # names of all resources, e.g. a deployment named
 # "wordpress" becomes "alices-wordpress".
 # Note that it should also match with the prefix (text before '-') of the namespace
 # field above.
-namePrefix: cluster-inventory-
+namePrefix: infrastructure-manager-
 
 # Labels to add to all resources and selectors.
 #labels:
@@ -28,12 +28,12 @@ resources:
 
 patchesStrategicMerge:
 # Protect the /metrics endpoint by putting it behind auth.
-# If you want your controller-manager to expose the /metrics
+# If you want your infrastructure-manager to expose the /metrics
 # endpoint w/o any authn/z, please comment the following line.
-- manager_auth_proxy_patch.yaml
-
-
-
+- manager_gardener_secret_patch.yaml
+- manager_converter_config_patch.yaml
+- manager_maintenance_window_patch.yaml
+- manager_audit_tenant_patch.yaml
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
 #- manager_webhook_patch.yaml

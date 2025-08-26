@@ -46,7 +46,7 @@ help: ## Display this help.
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(CONTROLLER_GEN) rbac:roleName=infrastructure-manager-role crd:allowDangerousTypes=true webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -62,7 +62,8 @@ vet: ## Run go vet against code.
 
 .PHONY: test
 test: manifests generate fmt vet envtest ## Run tests.
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" go test ./... -coverprofile cover.out
+		KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+        go test $(PACKAGES_TO_TEST) -v -coverprofile=coverage.txt
 
 ##@ Build
 
@@ -108,6 +109,10 @@ ifndef ignore-not-found
   ignore-not-found = false
 endif
 
+.PHONY: gardener-secret-deploy
+gardener-secret-deploy:
+	$(KUBECTL) create secret generic gardener-credentials --from-file kubeconfig=$(GARDENER_KUBECONFIG_PATH) -n kcp-system --dry-run=client -o yaml | kubectl apply -f -
+
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | $(KUBECTL) apply -f -
@@ -125,6 +130,19 @@ deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in
 undeploy: ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
 	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
+.PHONY: k3d-import-img
+k3d-import-img: 
+	k3d image import $(IMG) -c $(K3D_CLUSTER_NAME)
+
+.PHONY: apply-sample-cr
+apply-sample-cr: 
+	kubectl apply -f config/samples/infrastructuremanager_v1_gardenercluster.yaml
+
+.PHONE: local-build-and-deploy
+local-build-and-deploy: docker-build k3d-import-img deploy gardener-secret-deploy apply-sample-cr
+
+.PHONY: local-rebuild-and-redeploy
+local-rebuild-and-redeploy: undeploy local-build-and-deploy
 ##@ Build Dependencies
 
 ## Location to install dependencies to
@@ -138,9 +156,15 @@ KUSTOMIZE ?= $(LOCALBIN)/kustomize
 CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 
+## Test helper
+# Get the module path to build a robust grep pattern
+MODULE_PATH := $(shell go list -m)
+# Define the list of packages to test, excluding anything under the top-level /test or named test_*
+PACKAGES_TO_TEST := $(shell go list ./... | grep -v "$(MODULE_PATH)/test")
+
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.0.1
-CONTROLLER_TOOLS_VERSION ?= v0.12.0
+KUSTOMIZE_VERSION ?= v5.5.0
+CONTROLLER_TOOLS_VERSION ?= v0.16.5
 
 .PHONY: kustomize
 kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary. If wrong version is installed, it will be removed before downloading.

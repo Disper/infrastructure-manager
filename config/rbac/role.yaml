@@ -1,13 +1,25 @@
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
-  name: manager-role
+  name: infrastructure-manager-role
+  namespace: kcp-system
 rules:
 - apiGroups:
-  - clusterinventory.kyma-project.io
+  - ""
   resources:
-  - clusters
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - update
+  - watch
+- apiGroups:
+  - infrastructuremanager.kyma-project.io
+  resources:
+  - gardenerclusters
   verbs:
   - create
   - delete
@@ -17,16 +29,27 @@ rules:
   - update
   - watch
 - apiGroups:
-  - clusterinventory.kyma-project.io
+  - infrastructuremanager.kyma-project.io
   resources:
-  - clusters/finalizers
+  - gardenerclusters/finalizers
+  - gardenerclusters/status
+  - runtimes/finalizers
+  - runtimes/status
   verbs:
-  - update
-- apiGroups:
-  - clusterinventory.kyma-project.io
-  resources:
-  - clusters/status
-  verbs:
+  - create
+  - delete
   - get
+  - list
   - patch
   - update
+- apiGroups:
+  - infrastructuremanager.kyma-project.io
+  resources:
+  - runtimes
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch

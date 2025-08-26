@@ -1,3 +1,5 @@
+# related to OSX
+.DS_Store
 
 # Binaries for programs and plugins
 *.exe
@@ -24,3 +26,5 @@ Dockerfile.cross
 *.swp
 *.swo
 *~
+
+vendor
