@@ -33,7 +33,8 @@ func TestFeatureGatesExtender(t *testing.T) {
 		require.NotNil(t, shoot.Spec.Kubernetes.KubeAPIServer)
 		assert.Equal(t, apiServerFeatureGates, shoot.Spec.Kubernetes.KubeAPIServer.FeatureGates)
 		assert.Equal(t, kubeletFeatureGates, shoot.Spec.Kubernetes.Kubelet.FeatureGates)
-		assert.Nil(t, shoot.Spec.Kubernetes.KubeControllerManager)
+		require.NotNil(t, shoot.Spec.Kubernetes.KubeControllerManager)
+		assert.Nil(t, shoot.Spec.Kubernetes.KubeControllerManager.FeatureGates)
 	})
 
 	t.Run("KCM feature gates should be added to shoot when provided", func(t *testing.T) {

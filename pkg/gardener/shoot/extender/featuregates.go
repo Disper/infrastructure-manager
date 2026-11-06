@@ -17,12 +17,10 @@ func NewFeatureGatesExtender(apiServerFeatureGates map[string]bool, kubeletFeatu
 		}
 		shoot.Spec.Kubernetes.Kubelet.FeatureGates = kubeletFeatureGates
 
-		if len(kcmFeatureGates) > 0 {
-			if shoot.Spec.Kubernetes.KubeControllerManager == nil {
-				shoot.Spec.Kubernetes.KubeControllerManager = &gardener.KubeControllerManagerConfig{}
-			}
-			shoot.Spec.Kubernetes.KubeControllerManager.FeatureGates = kcmFeatureGates
+		if shoot.Spec.Kubernetes.KubeControllerManager == nil {
+			shoot.Spec.Kubernetes.KubeControllerManager = &gardener.KubeControllerManagerConfig{}
 		}
+		shoot.Spec.Kubernetes.KubeControllerManager.FeatureGates = kcmFeatureGates
 
 		return nil
 	}

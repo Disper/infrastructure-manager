@@ -55,10 +55,10 @@ type KubernetesConfig struct {
 	KubeApiServer                       KubeApiServer         `json:"kubeApiServer"`
 	Kubelet                             Kubelet               `json:"kubelet"`
 	KubeControllerManager               KubeControllerManager `json:"kubeControllerManager"`
-	DefaultVersion                      string        `json:"defaultVersion" validate:"required"`
-	EnableKubernetesVersionAutoUpdate   bool          `json:"enableKubernetesVersionAutoUpdate"`
-	EnableMachineImageVersionAutoUpdate bool          `json:"enableMachineImageVersionAutoUpdate"`
-	DefaultOperatorOidc                 OidcProvider  `json:"defaultOperatorOidc" validate:"required"`
+	DefaultVersion                      string                `json:"defaultVersion" validate:"required"`
+	EnableKubernetesVersionAutoUpdate   bool                  `json:"enableKubernetesVersionAutoUpdate"`
+	EnableMachineImageVersionAutoUpdate bool                  `json:"enableMachineImageVersionAutoUpdate"`
+	DefaultOperatorOidc                 OidcProvider          `json:"defaultOperatorOidc" validate:"required"`
 }
 
 type OidcProvider struct {
