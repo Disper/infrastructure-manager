@@ -6,9 +6,43 @@ import (
 	gardeneroidc "github.com/gardener/oidc-webhook-authenticator/apis/authentication/v1alpha1"
 	kyma "github.com/kyma-project/lifecycle-manager/api/v1beta2"
 	registrycacheapi "github.com/kyma-project/registry-cache/api/v1beta1"
+	"github.com/kyma-project/infrastructure-manager/pkg/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
+
+func TestEnableClusterTrustBundleFeatureForSKR(t *testing.T) {
+	t.Run("sets all required feature gates and runtime config on empty config", func(t *testing.T) {
+		converterConfig := &config.ConverterConfig{}
+		enableClusterTrustBundleFeatureForSKR(converterConfig)
+
+		require.NotNil(t, converterConfig.Kubernetes.KubeApiServer.FeatureGates)
+		assert.True(t, converterConfig.Kubernetes.KubeApiServer.FeatureGates["ClusterTrustBundle"])
+		assert.True(t, converterConfig.Kubernetes.KubeApiServer.FeatureGates["ClusterTrustBundleProjection"])
+
+		require.NotNil(t, converterConfig.Kubernetes.KubeApiServer.RuntimeConfig)
+		assert.True(t, converterConfig.Kubernetes.KubeApiServer.RuntimeConfig["certificates.k8s.io/v1beta1/clustertrustbundles"])
+
+		require.NotNil(t, converterConfig.Kubernetes.Kubelet.FeatureGates)
+		assert.True(t, converterConfig.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundleProjection"])
+		assert.True(t, converterConfig.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundle"])
+	})
+
+	t.Run("does not overwrite existing feature gates unrelated to ClusterTrustBundle", func(t *testing.T) {
+		converterConfig := &config.ConverterConfig{}
+		converterConfig.Kubernetes.KubeApiServer.FeatureGates = map[string]bool{"SomeExistingGate": true}
+		converterConfig.Kubernetes.Kubelet.FeatureGates = map[string]bool{"AnotherExistingGate": false}
+
+		enableClusterTrustBundleFeatureForSKR(converterConfig)
+
+		assert.True(t, converterConfig.Kubernetes.KubeApiServer.FeatureGates["SomeExistingGate"])
+		assert.True(t, converterConfig.Kubernetes.KubeApiServer.FeatureGates["ClusterTrustBundle"])
+		assert.False(t, converterConfig.Kubernetes.Kubelet.FeatureGates["AnotherExistingGate"])
+		assert.True(t, converterConfig.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundleProjection"])
+	})
+}
 
 func TestPrebuiltRuntimeSchemeRegistersTypes(t *testing.T) {
 	// Build the scheme the same way main.go does

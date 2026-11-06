@@ -1006,6 +1006,52 @@ func fixWorkersWithGVisor() []gardener.Worker {
 	}
 }
 
+func TestConverter_KubeletClusterTrustBundleFeatureGate(t *testing.T) {
+	ctbKubeletGates := map[string]bool{
+		"ClusterTrustBundle":           true,
+		"ClusterTrustBundleProjection": true,
+	}
+
+	for _, tc := range []struct {
+		name               string
+		runtimeVersion     string
+		currentVersion     string
+		expectCTBInKubelet bool
+	}{
+		{name: "runtime version < 1.35 strips ClusterTrustBundle from kubelet", runtimeVersion: "1.34.2", expectCTBInKubelet: false},
+		{name: "runtime version == 1.35 keeps ClusterTrustBundle in kubelet", runtimeVersion: "1.35.0", expectCTBInKubelet: true},
+		{name: "runtime version > 1.35 keeps ClusterTrustBundle in kubelet", runtimeVersion: "1.36.1", expectCTBInKubelet: true},
+		{name: "current shoot version >= 1.35 overrides lower runtime version", runtimeVersion: "1.34.2", currentVersion: "1.35.1", expectCTBInKubelet: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// given
+			runtime := fixRuntime(gardener.ShootPurposeProduction)
+			runtime.Spec.Shoot.Kubernetes.Version = &tc.runtimeVersion
+
+			converterConfig := fixConverterConfig()
+			converterConfig.Kubernetes.Kubelet.FeatureGates = ctbKubeletGates
+
+			converter := NewConverterPatch(context.Background(), PatchOpts{
+				ConverterConfig:      converterConfig,
+				ShootK8SVersion:      tc.currentVersion,
+				Workers:              fixWorkersWithReversedZones(converterConfig.MachineImage.DefaultName, converterConfig.MachineImage.DefaultVersion),
+				InfrastructureConfig: fixAWSInfrastructureConfig("10.250.0.0/16", []string{"eu-central-1a"}),
+				ControlPlaneConfig:   fixAWSControlPlaneConfig(),
+			})
+
+			// when
+			shoot, err := converter.ToShoot(runtime)
+
+			// then
+			require.NoError(t, err)
+			require.NotNil(t, shoot.Spec.Kubernetes.Kubelet)
+			assert.True(t, shoot.Spec.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundleProjection"])
+			_, found := shoot.Spec.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundle"]
+			assert.Equal(t, tc.expectCTBInKubelet, found)
+		})
+	}
+}
+
 func fixRuntimeWithMultipleRuntimes() imv1.Runtime {
 	rt := fixRuntime(gardener.ShootPurposeProduction)
 	rt.Spec.Shoot.Provider.Workers[0].CRI = &gardener.CRI{
