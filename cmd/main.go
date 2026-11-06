@@ -613,4 +613,10 @@ func enableClusterTrustBundleFeatureForSKR(converterConfig *config.ConverterConf
 	// Applied only to shoots with K8S >= 1.35 (filtered out per Runtime in the feature gates extender)
 	// See note here: https://v1-35.docs.kubernetes.io/docs/concepts/storage/projected-volumes/#clustertrustbundle
 	converterConfig.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundle"] = true
+
+	if converterConfig.Kubernetes.KubeControllerManager.FeatureGates == nil {
+		converterConfig.Kubernetes.KubeControllerManager.FeatureGates = make(map[string]bool)
+	}
+	// KubeAPIServerClusterTrustBundlePublisherController in KCM requires ClusterTrustBundle feature gate
+	converterConfig.Kubernetes.KubeControllerManager.FeatureGates["ClusterTrustBundle"] = true
 }

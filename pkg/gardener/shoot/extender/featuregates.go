@@ -13,7 +13,7 @@ const (
 	kubeletClusterTrustBundleMinVersion = "1.35"
 )
 
-func NewFeatureGatesExtender(apiServerFeatureGates map[string]bool, kubeletFeatureGates map[string]bool, defaultKubernetesVersion, currentKubernetesVersion string) func(runtime imv1.Runtime, shoot *gardener.Shoot) error {
+func NewFeatureGatesExtender(apiServerFeatureGates map[string]bool, kubeletFeatureGates map[string]bool, kcmFeatureGates map[string]bool, defaultKubernetesVersion, currentKubernetesVersion string) func(runtime imv1.Runtime, shoot *gardener.Shoot) error {
 	return func(runtime imv1.Runtime, shoot *gardener.Shoot) error {
 		if shoot.Spec.Kubernetes.KubeAPIServer == nil {
 			shoot.Spec.Kubernetes.KubeAPIServer = &gardener.KubeAPIServerConfig{}
@@ -24,6 +24,11 @@ func NewFeatureGatesExtender(apiServerFeatureGates map[string]bool, kubeletFeatu
 			shoot.Spec.Kubernetes.Kubelet = &gardener.KubeletConfig{}
 		}
 		shoot.Spec.Kubernetes.Kubelet.FeatureGates = filterKubeletFeatureGates(kubeletFeatureGates, EffectiveKubernetesVersion(runtime, defaultKubernetesVersion, currentKubernetesVersion))
+
+		if shoot.Spec.Kubernetes.KubeControllerManager == nil {
+			shoot.Spec.Kubernetes.KubeControllerManager = &gardener.KubeControllerManagerConfig{}
+		}
+		shoot.Spec.Kubernetes.KubeControllerManager.FeatureGates = kcmFeatureGates
 
 		return nil
 	}

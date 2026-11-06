@@ -28,6 +28,9 @@ func TestEnableClusterTrustBundleFeatureForSKR(t *testing.T) {
 		require.NotNil(t, converterConfig.Kubernetes.Kubelet.FeatureGates)
 		assert.True(t, converterConfig.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundleProjection"])
 		assert.True(t, converterConfig.Kubernetes.Kubelet.FeatureGates["ClusterTrustBundle"])
+
+		require.NotNil(t, converterConfig.Kubernetes.KubeControllerManager.FeatureGates)
+		assert.True(t, converterConfig.Kubernetes.KubeControllerManager.FeatureGates["ClusterTrustBundle"])
 	})
 
 	t.Run("does not overwrite existing feature gates unrelated to ClusterTrustBundle", func(t *testing.T) {

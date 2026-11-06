@@ -52,12 +52,13 @@ type DNSConfig struct {
 }
 
 type KubernetesConfig struct {
-	KubeApiServer                       KubeApiServer `json:"kubeApiServer"`
-	Kubelet                             Kubelet       `json:"kubelet"`
-	DefaultVersion                      string        `json:"defaultVersion" validate:"required"`
-	EnableKubernetesVersionAutoUpdate   bool          `json:"enableKubernetesVersionAutoUpdate"`
-	EnableMachineImageVersionAutoUpdate bool          `json:"enableMachineImageVersionAutoUpdate"`
-	DefaultOperatorOidc                 OidcProvider  `json:"defaultOperatorOidc" validate:"required"`
+	KubeApiServer                       KubeApiServer         `json:"kubeApiServer"`
+	Kubelet                             Kubelet               `json:"kubelet"`
+	KubeControllerManager               KubeControllerManager `json:"kubeControllerManager"`
+	DefaultVersion                      string                `json:"defaultVersion" validate:"required"`
+	EnableKubernetesVersionAutoUpdate   bool                  `json:"enableKubernetesVersionAutoUpdate"`
+	EnableMachineImageVersionAutoUpdate bool                  `json:"enableMachineImageVersionAutoUpdate"`
+	DefaultOperatorOidc                 OidcProvider          `json:"defaultOperatorOidc" validate:"required"`
 }
 
 type OidcProvider struct {
@@ -110,6 +111,10 @@ type KubeApiServer struct {
 }
 
 type Kubelet struct {
+	FeatureGates map[string]bool `json:"featureGates"`
+}
+
+type KubeControllerManager struct {
 	FeatureGates map[string]bool `json:"featureGates"`
 }
 

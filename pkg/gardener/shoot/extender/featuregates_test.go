@@ -25,7 +25,7 @@ func TestFeatureGatesExtender(t *testing.T) {
 		}
 
 		// when
-		extender := NewFeatureGatesExtender(apiServerFeatureGates, kubeletFeatureGates, "1.34", "")
+		extender := NewFeatureGatesExtender(apiServerFeatureGates, kubeletFeatureGates, nil, "1.34", "")
 		err := extender(runtime, &shoot)
 
 		// then
@@ -33,6 +33,8 @@ func TestFeatureGatesExtender(t *testing.T) {
 		require.NotNil(t, shoot.Spec.Kubernetes.KubeAPIServer)
 		assert.Equal(t, apiServerFeatureGates, shoot.Spec.Kubernetes.KubeAPIServer.FeatureGates)
 		assert.Equal(t, kubeletFeatureGates, shoot.Spec.Kubernetes.Kubelet.FeatureGates)
+		require.NotNil(t, shoot.Spec.Kubernetes.KubeControllerManager)
+		assert.Nil(t, shoot.Spec.Kubernetes.KubeControllerManager.FeatureGates)
 	})
 
 	for _, tc := range []struct {
@@ -66,7 +68,7 @@ func TestFeatureGatesExtender(t *testing.T) {
 			}
 
 			// when
-			extender := NewFeatureGatesExtender(map[string]bool{}, kubeletFeatureGates, tc.defaultVersion, tc.currentVersion)
+			extender := NewFeatureGatesExtender(map[string]bool{}, kubeletFeatureGates, nil, tc.defaultVersion, tc.currentVersion)
 			err := extender(runtime, &shoot)
 
 			// then
